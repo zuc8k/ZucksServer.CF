@@ -1,0 +1,15 @@
+# Zucks Server - docker-compose
+version: "3.9"
+
+services:
+  zucks-server:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: zucks-server
+    ports:
+      - "28888:28888"
+    volumes:
+      - ../config:/zucks/config:ro
+    restart: unless-stopped
+    command: ["config/zucks_config.json"]
