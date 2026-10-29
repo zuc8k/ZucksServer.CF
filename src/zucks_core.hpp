@@ -1,22 +1,23 @@
-// Zucks Server - Core Module
-// (c) 2026 Zucks Project. All rights reserved.
-
 #pragma once
+#include "zucks_config.hpp"
 #include <memory>
 #include <string>
 
 namespace Zucks {
 
+class Proxy;
+
 class Core {
 public:
     Core();
     ~Core();
+
     bool loadConfig(const std::string& path);
     void run();
 
 private:
-    class Impl;
-    std::unique_ptr<Impl> pimpl_;
+    Config cfg_;
+    std::shared_ptr<Proxy> proxy_;
 };
 
 } // namespace Zucks
