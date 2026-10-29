@@ -1,23 +1,31 @@
-// Zucks Server - Security Filter Module
-// (c) 2026 Zucks Project. All rights reserved.
-
 #pragma once
+#include "zucks_config.hpp"
 #include <cstdint>
+#include <mutex>
 #include <string>
+#include <unordered_map>
+#include <chrono>
 
 namespace Zucks {
 
 class Filter {
 public:
-    // فحص عميق للحزم (DPI) - يمكن توسيعه لبروتوكولات متعددة
+    explicit Filter(SecurityConfig cfg);
+
     bool inspectPacket(const uint8_t* data, size_t length);
-    // التحقق من معدل الاتصالات (Rate Limiting)
     bool allowConnection(const std::string& ip);
-    // إضافة عنوان IP إلى القائمة السوداء
     void blacklistIP(const std::string& ip);
 
 private:
-    // قوائم الحظر، عدادات PPS/BPS، إلخ.
+    struct Bucket {
+        double tokens = 0.0;
+        std::chrono::steady_clock::time_point last{};
+    };
+
+    SecurityConfig cfg_;
+    std::mutex mutex_;
+    std::unordered_map<std::string, Bucket> buckets_;
+    std::unordered_map<std::string, bool> blacklist_;
 };
 
 } // namespace Zucks
