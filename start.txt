@@ -17,3 +17,12 @@ ctest --test-dir build --output-on-failure
 
 # 5) تشغيل السيرفر
 ./scripts/run.sh
+
+الطريقة عبر Docker:
+
+docker compose -f docker/docker-compose.yml up -d --build
+docker compose -f docker/docker-compose.yml logs -f
+
+الطريقة عبر Makefile:
+make build && make run
+
