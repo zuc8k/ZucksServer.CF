@@ -1,20 +1,18 @@
-// Zucks Server - Main Entry Point
-// (c) 2026 Zucks Project. All rights reserved.
-
 #include "zucks_core.hpp"
 #include "zucks_logger.hpp"
-#include <iostream>
+#include <exception>
+#include <string>
 
 int main(int argc, char* argv[]) {
-    Zucks::Logger::init();
-    Zucks::Logger::info("Starting Zucks Server v1.0.0");
+    Zucks::Logger::init("info");
+    Zucks::Logger::info("Starting Zucks Server");
+
+    const std::string configPath =
+        (argc > 1) ? argv[1] : "config/zucks_config.json";
 
     try {
         Zucks::Core server;
-        if (!server.loadConfig("config/zucks_config.json")) {
-            Zucks::Logger::error("Failed to load configuration");
-            return 1;
-        }
+        if (!server.loadConfig(configPath)) return 1;
         server.run();
     } catch (const std::exception& e) {
         Zucks::Logger::critical("Fatal error: {}", e.what());
