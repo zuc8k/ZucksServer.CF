@@ -1,6 +1,8 @@
 #include "zucks_core.hpp"
 #include "zucks_proxy.hpp"
+#include "zucks_filter.hpp"
 #include "zucks_logger.hpp"
+
 #include <asio.hpp>
 #include <csignal>
 
@@ -25,9 +27,15 @@ bool Core::loadConfig(const std::string& path) {
 void Core::run() {
     asio::io_context io;
 
+    auto filter = std::make_shared<Filter>(cfg_.security);
+
     proxy_ = std::make_shared<Proxy>(
-        io, cfg_.listen_port, cfg_.target_host, cfg_.target_port
-    );
+        io,
+        cfg_.listen_port,
+        cfg_.target_host,
+        cfg_.target_port,
+        filter);
+
     proxy_->start();
 
     asio::signal_set signals(io, SIGINT, SIGTERM);
