@@ -1,0 +1,3 @@
+chmod +x scripts/build.sh
+./scripts/build.sh              # بناء Release
+./scripts/build.sh Debug        # بناء Debug
