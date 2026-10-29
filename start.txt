@@ -1,3 +1,19 @@
 chmod +x scripts/build.sh
 ./scripts/build.sh              # بناء Release
 ./scripts/build.sh Debug        # بناء Debug
+
+# 1) استنساخ المشروع
+git clone https://github.com/zuc8k/ZucksServer.CF.git
+cd ZucksServer.CF
+
+# 2) تجهيز السكربتات
+chmod +x scripts/*.sh
+
+# 3) بناء المشروع
+./scripts/build.sh
+
+# 4) تشغيل الاختبارات (اختياري)
+ctest --test-dir build --output-on-failure
+
+# 5) تشغيل السيرفر
+./scripts/run.sh
