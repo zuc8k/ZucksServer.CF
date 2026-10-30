@@ -4,7 +4,7 @@
     "log_level": "info",
     "listen_port": 28888,
     "target_host": "127.0.0.1",
-    "target_port": 18889,
+    "target_port": 13008,
     "security": {
       "max_pps": 1500,
       "max_bps": 5242880,
