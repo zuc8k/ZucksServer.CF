@@ -2,19 +2,15 @@
   "zucks": {
     "log_level": "info",
     "listen_port": 28888,
+    "game_path": "C:/CrossFire", 
+    "default_target": {
+      "target_host": "127.0.0.1",
+      "target_port": 13008
+    },
     "versions": {
-      "1.1.0": {
-        "target_host": "127.0.0.1",
-        "target_port": 13008
-      },
-      "2.1.0": {
-        "target_host": "127.0.0.1",
-        "target_port": 13009
-      },
-      "3.1.0": {
-        "target_host": "127.0.0.1",
-        "target_port": 13010
-      }
+      "1.1.0": { "target_host": "127.0.0.1", "target_port": 13008 },
+      "2.1.0": { "target_host": "127.0.0.1", "target_port": 13009 },
+      "3.1.0": { "target_host": "127.0.0.1", "target_port": 13010 }
     },
     "security": {
       "max_connections_per_ip": 30,
