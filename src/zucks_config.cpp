@@ -1,3 +1,4 @@
+// Zucks Server - Config Implementation
 #include "zucks_config.hpp"
 #include <fstream>
 #include <nlohmann/json.hpp>
@@ -11,31 +12,28 @@ bool loadConfig(const std::string& path, Config& out, std::string& err) {
 
         nlohmann::json root;
         f >> root;
-
         auto j = root.contains("zucks") ? root["zucks"] : root;
 
-        out.version = j.value("version", out.version);
-        out.log_level = j.value("log_level", out.log_level);
-        out.listen_port = j.value("listen_port", out.listen_port);
-        out.target_host = j.value("target_host", out.target_host);
-        out.target_port = j.value("target_port", out.target_port);
+        out.log_level = j.value("log_level", "info");
+        out.listen_port = j.value("listen_port", 28888);
+
+        if (j.contains("versions")) {
+            for (auto& [ver, val] : j["versions"].items()) {
+                TargetConfig t;
+                t.host = val.value("target_host", "127.0.0.1");
+                t.port = val.value("target_port", 13008);
+                out.versions[ver] = t;
+            }
+        }
 
         if (j.contains("security")) {
             const auto& s = j["security"];
-            out.security.max_pps = s.value("max_pps", out.security.max_pps);
-            out.security.max_bps = s.value("max_bps", out.security.max_bps);
-            out.security.max_connections_per_ip =
-                s.value("max_connections_per_ip", out.security.max_connections_per_ip);
-            out.security.blacklist_enabled =
-                s.value("blacklist_enabled", out.security.blacklist_enabled);
+            out.security.max_connections_per_ip = s.value("max_connections_per_ip", 30);
+            out.security.blacklist_enabled = s.value("blacklist_enabled", true);
         }
 
-        if (out.listen_port == 0 || out.target_port == 0) {
-            err = "Ports must be non-zero";
-            return false;
-        }
-        if (out.target_host.empty()) {
-            err = "target_host is empty";
+        if (out.versions.empty()) {
+            err = "No versions configured in JSON";
             return false;
         }
         return true;
