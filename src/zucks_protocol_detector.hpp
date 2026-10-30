@@ -1,14 +1,17 @@
-// Zucks Server - Protocol Detector
 #pragma once
 #include <cstdint>
 #include <string>
+#include <map>
 
 namespace Zucks {
 
 class ProtocolDetector {
 public:
-    // يكتشف الإصدار ويرجع "1.1.0" أو "2.1.0" أو "3.1.0" أو "Unknown"
-    static std::string detect(const uint8_t* data, size_t length);
+    // يكتشف الإصدار بناءً على الخريطة الديناميكية
+    static std::string detect(const uint8_t* data, size_t length, const std::map<std::string, std::string>& headersMap);
+    
+    // لتسجيل الهيدرات المجهولة
+    static void logUnknownHeader(uint8_t header);
 };
 
 } // namespace Zucks
