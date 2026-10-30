@@ -1,56 +1,22 @@
 // Zucks Server - Protocol Detector Implementation
-// (c) 2026 Zucks Project. All rights reserved.
-
 #include "zucks_protocol_detector.hpp"
 #include "zucks_logger.hpp"
 
 namespace Zucks {
 
-CFVersion ProtocolDetector::detect(const uint8_t* data, size_t length) {
-    if (!data || length < 4) {
-        return CFVersion::Unknown;
-    }
+std::string ProtocolDetector::detect(const uint8_t* data, size_t length) {
+    if (!data || length < 4) return "Unknown";
 
-    // التقريب المبدئي بناءً على أول بايت
-    // (يمكن تعديل الأرقام دي حسب هيكل الباكت الحقيقي لنسخك)
-    if (data[0] == CF_V1_MAGIC) return CFVersion::V1;
-    if (data[0] == CF_V2_MAGIC) return CFVersion::V2;
-    if (data[0] == CF_V3_MAGIC) return CFVersion::V3;
+    // قواعد اكتشاف الإصدار (يجب تعديلها بناءً على الباكت الحقيقي لكل نسخة)
+    // كمثال افتراضي: البايت الأول يحدد النسخة
+    uint8_t header = data[0];
 
-    // لو مفيش Magic واضح، ممكن نستخدم طول الباكت أو شكل الـ Header
-    // كـ fallback (مثلاً v1 بيكون 2 بايت طول، v2 بيكون 4 بايت)
-    return CFVersion::Unknown;
-}
+    if (header == 0x01) return "1.1.0"; // CrossFire v1
+    if (header == 0x02) return "2.1.0"; // CrossFire v2
+    if (header == 0x03) return "3.1.0"; // CrossFire v3
 
-const char* ProtocolDetector::versionName(CFVersion v) {
-    switch (v) {
-        case CFVersion::V1: return "CrossFire v1 (Legacy)";
-        case CFVersion::V2: return "CrossFire v2 (Stable)";
-        case CFVersion::V3: return "CrossFire v3 (CN/Modern)";
-        default:            return "Unknown / Mixed";
-    }
-}
-
-bool ProtocolDetector::isValidPacket(CFVersion v, const uint8_t* data, size_t length) {
-    if (!data || length < 4) return false;
-
-    // هنا تحط قواعد الفلتر الخاصة بكل إصدار
-    switch (v) {
-        case CFVersion::V1:
-            // v1 غالباً بيكون باكتات صغيرة، ومفيش تشفير معقد
-            return length <= 6000; 
-
-        case CFVersion::V2:
-            // v2 بيدعم باكتات أكبر شوية
-            return length <= 8192;
-
-        case CFVersion::V3:
-            // v3 ممكن يكون فيه ضغط أو شغل إضافي
-            return length > 0 && length <= 16384;
-
-        default:
-            return false;
-    }
+    // يمكنك إضافة فحص للطول (Length) أو البايت الثاني (Second Byte) لدقة أكثر
+    return "Unknown";
 }
 
 } // namespace Zucks
