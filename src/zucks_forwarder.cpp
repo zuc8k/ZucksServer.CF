@@ -4,28 +4,7 @@
 
 namespace Zucks {
 
-Forwarder::Forwarder(asio::ip::tcp::socket client, const Config& cfg, std::shared_ptr<Filter> filter)
-    : client_(std::move(client)),
-      resolver_(client_.get_executor()),
-      server_(client_.get_executor()),
-      cfg_(cfg),
-      filter_(std::move(filter)) {}
-
-void Forwarder::start() {
-    asio::error_code ec;
-    const auto ep = client_.remote_endpoint(ec);
-    if (ec) { closeAll(); return; }
-
-    const std::string ip = ep.address().to_string();
-    if (!filter_->allowConnection(ip)) {
-        Logger::warn("Forwarder: connection blocked by filter for {}", ip);
-        closeAll();
-        return;
-    }
-
-    // نبدأ بقراءة أول باكت لنعرف النسخة
-    readFirstPacket();
-}
+// ... (نفس الكونستركتور) ...
 
 void Forwarder::readFirstPacket() {
     auto self = shared_from_this();
@@ -33,27 +12,30 @@ void Forwarder::readFirstPacket() {
         [self](asio::error_code ec, std::size_t n) {
             if (ec || n == 0) { self->closeAll(); return; }
 
+            // 1. اكتشاف الإصدار
             std::string version = ProtocolDetector::detect(
-                reinterpret_cast<const uint8_t*>(self->c2s_.data()), n);
+                reinterpret_cast<const uint8_t*>(self->c2s_.data()), n, self->cfg_.headers_map);
 
-            Logger::info("Forwarder: Client connected with version {}", version);
+            Logger::info("Forwarder: Client connected. Header matched version: {}", version);
 
-            if (self->cfg_.versions.find(version) == self->cfg_.versions.end()) {
-                Logger::warn("Forwarder: Unsupported version {}, closing.", version);
-                self->closeAll();
-                return;
+            // 2. تحديد السيرفر الهدف (لو الإصدار مجهول، نستخدم الافتراضي)
+            if (self->cfg_.versions.find(version) != self->cfg_.versions.end()) {
+                self->current_target_ = self->cfg_.versions.at(version);
+                Logger::info("Forwarder: Routing to specific server for {}", version);
+            } else {
+                self->current_target_ = self->cfg_.default_target;
+                Logger::warn("Forwarder: Unknown/New version detected. Routing to DEFAULT server {}:{}", 
+                    self->current_target_.host, self->current_target_.port);
             }
 
-            self->current_target_ = self->cfg_.versions.at(version);
+            // 3. الاتصال بالسيرفر
             self->connectToTarget(version);
         });
 }
 
 void Forwarder::connectToTarget(const std::string& detected_version) {
     auto self = shared_from_this();
-    Logger::info("Forwarder: Routing {} client to {}:{}", 
-        detected_version, current_target_.host, current_target_.port);
-
+    
     resolver_.async_resolve(current_target_.host, std::to_string(current_target_.port),
         [self](asio::error_code ec, asio::ip::tcp::resolver::results_type results) {
             if (ec) { self->closeAll(); return; }
@@ -65,8 +47,7 @@ void Forwarder::connectToTarget(const std::string& detected_version) {
                         self->closeAll();
                         return;
                     }
-                    
-                    // بمجرد الاتصال، نرسل أول باكت قرأناه مسبقاً
+                    // نرسل أول باكت للسيرفر الهدف
                     asio::async_write(self->server_, asio::buffer(self->c2s_, self->c2s_.size()),
                         [self](asio::error_code ec2, std::size_t n) {
                             if (!ec2) self->startRelay();
@@ -74,47 +55,6 @@ void Forwarder::connectToTarget(const std::string& detected_version) {
                         });
                 });
         });
-}
-
-// (باقي دوال الـ Relay startRelay, relayClientToServer, relayServerToClient, closeAll تبقى كما هي)
-void Forwarder::startRelay() {
-    relayClientToServer();
-    relayServerToClient();
-}
-
-void Forwarder::relayClientToServer() {
-    auto self = shared_from_this();
-    client_.async_read_some(asio::buffer(c2s_),
-        [self](asio::error_code ec, std::size_t n) {
-            if (ec || n == 0) { self->closeAll(); return; }
-            if (!self->filter_->inspectPacket(reinterpret_cast<const uint8_t*>(self->c2s_.data()), n)) {
-                self->closeAll(); return;
-            }
-            asio::async_write(self->server_, asio::buffer(self->c2s_, n),
-                [self](asio::error_code ec2, std::size_t) {
-                    if (ec2) self->closeAll();
-                    else self->relayClientToServer();
-                });
-        });
-}
-
-void Forwarder::relayServerToClient() {
-    auto self = shared_from_this();
-    server_.async_read_some(asio::buffer(s2c_),
-        [self](asio::error_code ec, std::size_t n) {
-            if (ec || n == 0) { self->closeAll(); return; }
-            asio::async_write(self->client_, asio::buffer(self->s2c_, n),
-                [self](asio::error_code ec2, std::size_t) {
-                    if (ec2) self->closeAll();
-                    else self->relayServerToClient();
-                });
-        });
-}
-
-void Forwarder::closeAll() {
-    asio::error_code ec;
-    client_.close(ec);
-    server_.close(ec);
 }
 
 } // namespace Zucks
