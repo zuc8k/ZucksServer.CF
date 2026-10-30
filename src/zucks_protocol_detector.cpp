@@ -1,22 +1,37 @@
-// Zucks Server - Protocol Detector Implementation
 #include "zucks_protocol_detector.hpp"
 #include "zucks_logger.hpp"
+#include <iomanip>
+#include <sstream>
+#include <fstream>
 
 namespace Zucks {
 
-std::string ProtocolDetector::detect(const uint8_t* data, size_t length) {
+std::string ProtocolDetector::detect(const uint8_t* data, size_t length, const std::map<std::string, std::string>& headersMap) {
     if (!data || length < 4) return "Unknown";
 
-    // قواعد اكتشاف الإصدار (يجب تعديلها بناءً على الباكت الحقيقي لكل نسخة)
-    // كمثال افتراضي: البايت الأول يحدد النسخة
     uint8_t header = data[0];
 
-    if (header == 0x01) return "1.1.0"; // CrossFire v1
-    if (header == 0x02) return "2.1.0"; // CrossFire v2
-    if (header == 0x03) return "3.1.0"; // CrossFire v3
+    // تحويل البايت إلى شكل Hex (مثال: 0x01)
+    std::stringstream ss;
+    ss << "0x" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(header);
+    std::string hexStr = ss.str();
 
-    // يمكنك إضافة فحص للطول (Length) أو البايت الثاني (Second Byte) لدقة أكثر
+    // البحث في الخريطة
+    auto it = headersMap.find(hexStr);
+    if (it != headersMap.end()) {
+        return it->second;
+    }
+
+    // لو مجهول، نسجله عشان المطور يعرفه
+    logUnknownHeader(header);
     return "Unknown";
+}
+
+void ProtocolDetector::logUnknownHeader(uint8_t header) {
+    std::ofstream log("unknown_headers.log", std::ios::app);
+    if (log) {
+        log << "Detected Unknown Header: 0x" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(header) << "\n";
+    }
 }
 
 } // namespace Zucks
